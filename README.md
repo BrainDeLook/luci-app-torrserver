@@ -90,6 +90,8 @@ The smoke test covers installation, version, HTTP API and web UI, rpcd registrat
 
 Each successful artifact includes `BUILDINFO.txt`, the upstream GPL license, SHA256 checksums and a smoke-test report. Failed checks do not automatically publish a release. Build artifacts are available from Actions; releases are published after reviewing a successful run.
 
+Maintainers can run **Publish verified release** with the successful build run ID. It accepts only successful builds of this repository's `main`, checks hashes and the smoke-test result, verifies APKv3 headers, and publishes the exact tested commit. The first release defaults to prerelease status pending physical-router testing.
+
 For a local Linux build, install Go as specified in upstream `server/go.mod`, Node.js 20, Yarn 1.22.22 and the OpenWrt SDK prerequisites. Clone the pinned upstream commit into `.build/upstream`, then run:
 
 ```sh

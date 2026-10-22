@@ -1,0 +1,66 @@
+name: Publish verified release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful build.yml run ID from this repository
+        required: true
+        type: string
+      prerelease:
+        description: Mark as a prerelease until tested on physical routers
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_RUN: ${{ inputs.build_run }}
+      REPOSITORY: ${{ github.repository }}
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - name: Verify build provenance
+        id: verify
+        run: |
+          case "$BUILD_RUN" in ''|*[!0-9]*) exit 1 ;; esac
+          gh api "repos/$REPOSITORY/actions/runs/$BUILD_RUN" > run.json
+          jq -e --arg repo "$REPOSITORY" '.repository.full_name == $repo and .conclusion == "success" and .head_branch == "main" and .path == ".github/workflows/build.yml" and (.event == "push" or .event == "workflow_dispatch")' run.json
+          echo "commit=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.verify.outputs.commit }}
+      - name: Download and verify tested packages
+        run: |
+          mkdir dist
+          gh run download "$BUILD_RUN" --repo "$REPOSITORY" --dir dist
+          artifact_dir="$(dirname "$(find dist -name SHA256SUMS -print -quit)")"
+          test -n "$artifact_dir"
+          cd "$artifact_dir"
+          sha256sum -c SHA256SUMS
+          grep -q '^PASS:' SMOKE-TEST.txt
+          test "$(find . -maxdepth 1 -name '*.apk' | wc -l)" -eq 2
+          for package in ./*.apk; do test "$(head -c 3 "$package")" = ADB; done
+          echo "ARTIFACT_DIR=$PWD" >> "$GITHUB_ENV"
+      - name: Publish release from the tested commit
+        run: |
+          version="$(sed -n 's/^PKG_VERSION:=//p' packages/torrserver/Makefile)"
+          revision="$(sed -n 's/^PKG_RELEASE:=//p' packages/torrserver/Makefile)"
+          notes="docs/releases/$version-r$revision.md"
+          test -s "$notes"
+          flags=()
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+          gh release create "v$version-r$revision" "$ARTIFACT_DIR"/* \
+            --repo "$REPOSITORY" --target '${{ steps.verify.outputs.commit }}' \
+            --title "TorrServer MatriX.$version · OpenWrt 25.12.5 (ARM64)" \
+            --notes-file "$notes" "${flags[@]}"
