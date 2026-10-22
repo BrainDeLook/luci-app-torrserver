@@ -41,8 +41,12 @@ if tr '\0' '\n' < "/proc/$before/cmdline" | grep -x -- --dontkill; then
 fi
 started="$(date +%s)"
 /etc/init.d/torrserver stop
-sleep 2
-test ! -d "/proc/$before"
+attempt=0
+while [ -d "/proc/$before" ]; do
+	attempt=$((attempt + 1))
+	[ "$attempt" -lt 14 ] || exit 1
+	sleep 1
+done
 test "$(($(date +%s) - started))" -lt 15
 /etc/init.d/torrserver start
 wait_http
