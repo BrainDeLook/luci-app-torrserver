@@ -34,30 +34,41 @@ jobs:
           sh -n tests/router-smoke.sh
           sh -n tests/container-init.sh
           git diff --check
+      - uses: actions/cache/restore@v4
+        id: package-cache
+        with:
+          path: dist/
+          key: apk-147-sdk-f5813d3-${{ hashFiles('packages/**', 'luci/**', 'scripts/build-upstream.sh', 'scripts/prepare-feed.sh', 'scripts/collect-packages.sh') }}
       - name: Install build tools
+        if: steps.package-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: |
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends build-essential flex bison gawk gettext git libncurses-dev libssl-dev python3-setuptools rsync unzip zlib1g-dev file binutils zstd
           msgfmt --check luci/i18n/ru.po -o /dev/null
       - uses: actions/checkout@v4
+        if: steps.package-cache.outputs.cache-hit != 'true'
         with:
           repository: YouROK/TorrServer
           ref: a86d8fa7fd4e07605f240fe69bf299392f7cb023
           path: .build/upstream
       - uses: actions/setup-go@v5
+        if: steps.package-cache.outputs.cache-hit != 'true'
         with:
           go-version-file: .build/upstream/server/go.mod
           cache-dependency-path: .build/upstream/server/go.sum
       - uses: actions/setup-node@v4
+        if: steps.package-cache.outputs.cache-hit != 'true'
         with:
           node-version: '20'
       - name: Set up pinned Yarn
+        if: steps.package-cache.outputs.cache-hit != 'true'
         run: |
           corepack enable
           corepack prepare yarn@1.22.22 --activate
       - uses: actions/cache/restore@v4
         id: upstream-cache
+        if: steps.package-cache.outputs.cache-hit != 'true'
         with:
           path: |
             .build/torrserver
@@ -65,10 +76,10 @@ jobs:
             .build/TORRSERVER-LICENSE.txt
           key: torrserver-arm64-147-${{ hashFiles('scripts/build-upstream.sh') }}
       - name: Build official upstream source
-        if: steps.upstream-cache.outputs.cache-hit != 'true'
+        if: steps.package-cache.outputs.cache-hit != 'true' && steps.upstream-cache.outputs.cache-hit != 'true'
         run: bash scripts/build-upstream.sh .build/upstream .build
       - uses: actions/cache/save@v4
-        if: steps.upstream-cache.outputs.cache-hit != 'true'
+        if: steps.package-cache.outputs.cache-hit != 'true' && steps.upstream-cache.outputs.cache-hit != 'true'
         with:
           path: |
             .build/torrserver
@@ -76,8 +87,10 @@ jobs:
             .build/TORRSERVER-LICENSE.txt
           key: torrserver-arm64-147-${{ hashFiles('scripts/build-upstream.sh') }}
       - name: Prepare package feed
+        if: steps.package-cache.outputs.cache-hit != 'true'
         run: bash scripts/prepare-feed.sh .build/torrserver
       - name: Build native APKv3 packages
+        if: steps.package-cache.outputs.cache-hit != 'true'
         uses: openwrt/gh-action-sdk@f5813d30eeef3534b58ac7e79c5d8842b6035434
         env:
           ARCH: aarch64_generic-25.12.5
@@ -90,7 +103,13 @@ jobs:
           NO_SHFMT_CHECK: '1'
           BUILD_LOG: '1'
       - name: Collect and verify APKv3 artifacts
+        if: steps.package-cache.outputs.cache-hit != 'true'
         run: bash scripts/collect-packages.sh .build/sdk-output
+      - uses: actions/cache/save@v4
+        if: steps.package-cache.outputs.cache-hit != 'true'
+        with:
+          path: dist/
+          key: ${{ steps.package-cache.outputs.cache-primary-key }}
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -102,8 +121,10 @@ jobs:
           docker run -d --name torrserver-test --platform linux/arm64 --privileged -v "$PWD/dist:/packages:ro" -v "$PWD/tests:/tests:ro" torrserver-test /bin/sh /tests/container-init.sh
           for attempt in $(seq 1 30); do
             if docker exec torrserver-test ubus call system board; then break; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' torrserver-test)" != true ]; then docker logs torrserver-test; exit 1; fi
             sleep 2
           done
+          docker exec torrserver-test ubus call system board
           docker exec torrserver-test /bin/sh /tests/router-smoke.sh | tee dist/SMOKE-TEST.txt
           grep -q '^PASS:' dist/SMOKE-TEST.txt
       - name: Container diagnostics
