@@ -14,6 +14,13 @@ for (const message of messages) {
 }
 
 const serviceVersion = read('packages/torrserver/Makefile').match(/^PKG_VERSION:=(.+)$/m)[1];
+const revision = read('packages/torrserver/Makefile').match(/^PKG_RELEASE:=(.+)$/m)[1];
+const luciVersion = read('packages/luci-app-torrserver/Makefile').match(/^PKG_VERSION:=(.+)$/m)[1];
+const luciRevision = read('packages/luci-app-torrserver/Makefile').match(/^PKG_RELEASE:=(.+)$/m)[1];
+const installer = read('install.sh');
+assert.ok(installer.includes(`RELEASE_TAG=v${serviceVersion}-r${revision}`), 'Installer release tag disagrees');
+assert.ok(installer.includes(`SERVER_PACKAGE=torrserver-${serviceVersion}-r${revision}.apk`), 'Installer server package disagrees');
+assert.ok(installer.includes(`LUCI_PACKAGE=luci-app-torrserver-${luciVersion}-r${luciRevision}.apk`), 'Installer LuCI package disagrees');
 const build = read('scripts/build-upstream.sh');
 assert.ok(build.includes(`server/version.Version=MatriX.${serviceVersion}`), 'Server version and build disagree');
 const upstreamCommit = build.match(/^expected_commit=([a-f0-9]{40})$/m)[1];

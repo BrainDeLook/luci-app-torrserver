@@ -27,6 +27,24 @@ Settings use standard LuCI Save / Save & Apply / Reset behavior. Changing a chec
 
 ## Install
 
+### One-command SSH installer
+
+Run as `root` on the router:
+
+```sh
+wget -O /tmp/torrserver-install.sh https://github.com/BrainDeLook/luci-app-torrserver/releases/latest/download/install.sh && sh /tmp/torrserver-install.sh
+```
+
+Like the CloudPub installer, this installs **both native APKs**, not an unmanaged binary. It checks OpenWrt 25.12.5, `aarch64_generic`, `apk`, free space (64 MiB in `/tmp`, 96 MiB on the system filesystem), SHA256 and APKv3 headers before modifying packages. Each installer pins its own release and package versions.
+
+Upgrades retain UCI configuration and the data directory. Existing `/etc/config/torrserver` and `accs.db` are also copied into a root-only `/etc/torrserver-backups/DATE-PID` directory before installation. Backups contain credentials: do not share them. They are not automatically pruned and do not replace a full data-directory backup.
+
+Use `sh /tmp/torrserver-install.sh --check` for read-only compatibility checks, `--reinstall` to reinstall the same versions, or `--from-dir /tmp/packages` with previously downloaded APKs and `SHA256SUMS`. Dependencies still use the configured OpenWrt feeds. The installer does not modify firewall, VPN or repository configuration.
+
+Checksums detect corrupted downloads, not a compromised publisher: these standalone packages are unsigned, so trust relies on HTTPS and the maintainer's GitHub account. You can inspect the script before executing it.
+
+### Manual installation
+
 Check the firmware first:
 
 ```sh
@@ -37,7 +55,7 @@ Download both APKs from the same release and upload them to `/tmp` on the router
 
 ```sh
 apk update
-apk add --allow-untrusted /tmp/torrserver-147-r1.apk /tmp/luci-app-torrserver-3.0.0-r1.apk
+apk add --allow-untrusted /tmp/torrserver-147-r2.apk /tmp/luci-app-torrserver-3.0.0-r2.apk
 ```
 
 The release lists the exact filenames. `--allow-untrusted` is required for these standalone packages; a signed package feed is not provided. Standard dependencies come from your configured OpenWrt feeds.

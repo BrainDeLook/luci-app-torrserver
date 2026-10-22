@@ -10,9 +10,24 @@ wait_http() {
 	done
 }
 
-apk update
 printf '%s\n' 'CHECK: package installation and executable version'
-apk add --allow-untrusted /packages/torrserver-*.apk /packages/luci-app-torrserver-*.apk
+sh /packages/install.sh --check
+printf '%s\n' 'CHECK: installer rejects corrupted downloads before installing'
+bad_packages="$(mktemp -d /tmp/torrserver-bad.XXXXXX)"
+cp /packages/*.apk /packages/SHA256SUMS "$bad_packages/"
+for package in "$bad_packages"/luci-app-torrserver-*.apk; do
+	printf 'corrupted' >> "$package"
+done
+if sh /packages/install.sh --from-dir "$bad_packages"; then
+	echo 'Installer accepted a corrupted package' >&2
+	exit 1
+fi
+rm -rf "$bad_packages"
+if apk info -e torrserver >/dev/null 2>&1; then
+	echo 'Rejected installer changed the package database' >&2
+	exit 1
+fi
+sh /packages/install.sh --from-dir /packages
 test "$(ls -l /etc/config/torrserver | awk '{print $1}')" = '-rw-------'
 /usr/bin/torrserver --version | grep -F MatriX.147
 attempt=0
@@ -66,11 +81,16 @@ fi
 credentials='c21va2U6dGVzdC0icXVvdGVcc2xhc2g='
 wget -q --header="Authorization: Basic $credentials" --post-data='{"action":"list"}' -O /tmp/torrserver-private http://127.0.0.1:18090/torrents
 printf '%s\n' 'CHECK: reinstall and configuration retention'
-apk add --allow-untrusted --force-reinstall /packages/torrserver-*.apk
+sh /packages/install.sh --from-dir /packages --reinstall
 wait_http
 wget -q --header="Authorization: Basic $credentials" --post-data='{"action":"list"}' -O /tmp/torrserver-private http://127.0.0.1:18090/torrents
 test "$(uci get torrserver.main.port)" = 18090
 test -s /opt/torrserver/accs.db
+backup_config="$(find /etc/torrserver-backups -name torrserver | head -n 1)"
+test -n "$backup_config"
+test "$(ls -l "$backup_config" | awk '{print $1}')" = '-rw-------'
+test "$(sha256sum /etc/config/torrserver | awk '{print $1}')" = "$(sha256sum "$backup_config" | awk '{print $1}')"
+test "$(sha256sum /opt/torrserver/accs.db | awk '{print $1}')" = "$(sha256sum "$(dirname "$backup_config")/accs.db" | awk '{print $1}')"
 uci set torrserver.main.enabled=0
 printf '%s\n' 'CHECK: disabled service and package removal'
 uci commit torrserver
@@ -83,4 +103,4 @@ until [ "$(ubus call luci.torrserver status | jsonfilter -e '@.service.running')
 done
 apk del luci-app-torrserver torrserver
 test -s /opt/torrserver/accs.db
-printf '%s\n' 'PASS: install, API, web UI, RPC, graceful stop, auth, reinstall, config retention, disabled service, removal'
+printf '%s\n' 'PASS: installer, corrupt-download rejection, install, API, web UI, RPC, graceful stop, auth, reinstall, config backup/retention, disabled service, removal'
