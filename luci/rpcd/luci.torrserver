@@ -10,7 +10,7 @@ status() {
 	enabled="$(uci -q get torrserver.main.enabled)"
 	rss=0
 	cpu_pct=0
-	cpu_total="$(awk '/^cpu / {for (field=2; field<=9; field++) total += $field; print total; exit}' /proc/stat)"
+	cpu_total="$(awk '/^cpu / {for (field=2; field<=9; field++) total += $field; printf "%.0f", total; exit}' /proc/stat)"
 	if [ -n "$pid" ] && [ -r "/proc/$pid/status" ]; then
 		rss="$(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status")"
 		proc_ticks="$(awk '{print $14+$15}' "/proc/$pid/stat")"
@@ -45,9 +45,13 @@ status() {
 }
 
 logs() {
-	local lines
+	local lines logfile
 	lines="$(logread -e torrserver 2>/dev/null | tail -n 100)"
 	[ -n "$lines" ] || lines="$(logread -e TorrServer 2>/dev/null | tail -n 100)"
+	if [ -z "$lines" ]; then
+		logfile="$(uci -q get torrserver.main.logpath)"
+		[ -z "$logfile" ] || lines="$(tail -n 100 "$logfile" 2>/dev/null)"
+	fi
 	json_init
 	json_add_array lines
 	if [ -n "$lines" ]; then

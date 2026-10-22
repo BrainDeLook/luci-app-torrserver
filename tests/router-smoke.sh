@@ -20,9 +20,16 @@ wget -q -O /tmp/torrserver-web http://127.0.0.1:18090/
 test -s /tmp/torrserver-web
 ubus call luci.torrserver status | jsonfilter -e '@.service.running' | grep -x true
 before="$(ubus call luci.torrserver status | jsonfilter -e '@.service.pid')"
+test "$before" -gt 0
+if tr '\0' '\n' < "/proc/$before/cmdline" | grep -x -- --dontkill; then
+	echo 'Service must not ignore SIGTERM' >&2
+	exit 1
+fi
+started="$(date +%s)"
 /etc/init.d/torrserver stop
 sleep 2
 test ! -d "/proc/$before"
+test "$(($(date +%s) - started))" -lt 15
 /etc/init.d/torrserver start
 sleep 5
 uci set torrserver.main.httpauth=1

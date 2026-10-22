@@ -24,7 +24,7 @@ add_flag() {
 }
 
 start_service() {
-	local enabled port path httpauth username password proxyurl proxymode maxsize ip
+	local enabled port path httpauth username password proxyurl proxymode maxsize ip auth_tmp
 	config_load torrserver
 	config_get_bool enabled main enabled 1
 	[ "$enabled" -eq 1 ] || return 0
@@ -50,8 +50,12 @@ start_service() {
 			. /usr/share/libubox/jshn.sh
 			json_init
 			json_add_string "$username" "$password"
-			(umask 077; json_dump > "$path/accs.db.new") || return 1
-			mv -f "$path/accs.db.new" "$path/accs.db" || return 1
+			auth_tmp="$(umask 077; mktemp "$path/.accs.XXXXXX")" || return 1
+			if ! json_dump > "$auth_tmp"; then
+				rm -f "$auth_tmp"
+				return 1
+			fi
+			mv -f "$auth_tmp" "$path/accs.db" || return 1
 		elif [ ! -s "$path/accs.db" ]; then
 			fail 'HTTP authentication requires credentials or an existing accs.db'
 			return 1

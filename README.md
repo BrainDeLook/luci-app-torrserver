@@ -46,6 +46,8 @@ Open **Services → TorrServer** in LuCI. TorrServer's own web interface is avai
 
 The default data directory is `/opt/torrserver`. Ensure enough free storage for the binary, package installation and your chosen cache. Cache configuration belongs to TorrServer's own web interface; the maximum stream size field is in bytes and is not a RAM cache limit. High bitrate streams may need substantially more RAM and CPU than basic router workloads.
 
+The upstream web UI is included. This self-build does not embed the upstream maintainer's private TMDB API key; enter your own key in TorrServer's settings if you use TMDB lookups.
+
 ## Upgrade and migrate
 
 Back up `/etc/config/torrserver` and the configured data directory before migration. Install both new packages together. The UCI file is marked as a configuration file and is preserved on upgrade; the service keeps the configured data path. Existing databases are not deleted by the package.

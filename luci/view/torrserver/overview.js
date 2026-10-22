@@ -56,7 +56,11 @@ return view.extend({
 							throw new Error(_('Service action failed'));
 					}).catch(function(error) {
 						ui.addNotification(null, E('p', {}, error.message), 'error');
-					}).finally(function() { busy = false; return refresh(); });
+					}).finally(function() {
+						busy = false;
+						buttons.forEach(function(control) { control.disabled = false; });
+						return refresh();
+					});
 				}
 			}, entry[1]);
 			buttons.push(button);

@@ -13,7 +13,7 @@ define Package/luci-app-torrserver
   SUBMENU:=3. Applications
   TITLE:=LuCI interface for TorrServer
   URL:=https://github.com/BrainDeLook/luci-app-torrserver
-  DEPENDS:=+luci-base +rpcd +rpcd-mod-luci +jshn +torrserver
+  DEPENDS:=+luci-base +rpcd +rpcd-mod-luci +jshn +jsonfilter +torrserver
   PKGARCH:=all
 endef
 

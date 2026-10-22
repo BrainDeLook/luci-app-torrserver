@@ -15,6 +15,7 @@ define Package/torrserver
   TITLE:=TorrServer torrent streaming server
   URL:=https://github.com/BrainDeLook/luci-app-torrserver
   DEPENDS:=+ca-bundle +procd +uci +jshn
+  CONFLICTS:=torrserver-upx torrserver-official
 endef
 
 define Package/torrserver/description
