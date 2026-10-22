@@ -119,12 +119,20 @@ jobs:
           echo '493336e176fdc1d6a377763e87a58c5854c24f51e83e586b209783e4bb648d42  .build/rootfs.tar.gz' | sha256sum -c
           docker import --platform linux/arm64 .build/rootfs.tar.gz torrserver-test
           docker run -d --name torrserver-test --platform linux/arm64 --privileged -v "$PWD/dist:/packages:ro" -v "$PWD/tests:/tests:ro" torrserver-test /bin/sh /tests/container-init.sh
+          sudo cat "$(docker inspect -f '{{.ResolvConfPath}}' torrserver-test)" > .build/test-resolv.conf
           for attempt in $(seq 1 30); do
             if docker exec torrserver-test ubus call system board; then break; fi
             if [ "$(docker inspect -f '{{.State.Running}}' torrserver-test)" != true ]; then docker logs torrserver-test; exit 1; fi
             sleep 2
           done
           docker exec torrserver-test ubus call system board
+          for attempt in $(seq 1 40); do
+            if docker exec torrserver-test logread | grep -q 'init complete'; then break; fi
+            sleep 1
+          done
+          docker exec torrserver-test ip route
+          docker exec torrserver-test cat /etc/resolv.conf
+          docker exec -i torrserver-test /bin/sh -c 'cat > /etc/resolv.conf' < .build/test-resolv.conf
           docker exec torrserver-test /bin/sh /tests/router-smoke.sh | tee dist/SMOKE-TEST.txt
           grep -q '^PASS:' dist/SMOKE-TEST.txt
       - name: Container diagnostics
@@ -132,6 +140,9 @@ jobs:
         run: |
           docker logs torrserver-test || true
           docker exec torrserver-test logread || true
+          docker exec torrserver-test ip addr || true
+          docker exec torrserver-test ip route || true
+          docker exec torrserver-test cat /etc/resolv.conf || true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
