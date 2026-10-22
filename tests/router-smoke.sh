@@ -75,8 +75,12 @@ uci set torrserver.main.enabled=0
 printf '%s\n' 'CHECK: disabled service and package removal'
 uci commit torrserver
 /etc/init.d/torrserver restart
-sleep 2
-ubus call luci.torrserver status | jsonfilter -e '@.service.running' | grep -x false
+attempt=0
+until [ "$(ubus call luci.torrserver status | jsonfilter -e '@.service.running')" = false ]; do
+	attempt=$((attempt + 1))
+	[ "$attempt" -lt 14 ] || exit 1
+	sleep 1
+done
 apk del luci-app-torrserver torrserver
 test -s /opt/torrserver/accs.db
 printf '%s\n' 'PASS: install, API, web UI, RPC, graceful stop, auth, reinstall, config retention, disabled service, removal'
