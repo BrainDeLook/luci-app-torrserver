@@ -1,500 +1,98 @@
-# 🎬 TorrServer for OpenWrt + LuCI Companion
+# TorrServer for OpenWrt
 
-> Компактные OpenWrt-пакеты TorrServer + лёгкая LuCI-морда для домашнего роутера.
+Native OpenWrt packages for **TorrServer MatriX.147**, with a LuCI management page.
 
-![OpenWrt](https://img.shields.io/badge/OpenWrt-21--25%2B-00B5E2?logo=openwrt&logoColor=white)
-![Packages](https://img.shields.io/badge/packages-IPK%20%2F%20APK-blue)
-![Platforms](https://img.shields.io/badge/platforms-aarch64%20%7C%20x86__64-green)
-![LuCI](https://img.shields.io/badge/LuCI-companion-orange)
-![Status](https://img.shields.io/badge/status-beta-yellow)
+[Русская документация](README.ru.md) · [Downloads](https://github.com/BrainDeLook/luci-app-torrserver/releases) · [Build checks](https://github.com/BrainDeLook/luci-app-torrserver/actions)
 
-Этот репозиторий собирает и публикует готовые пакеты для OpenWrt:
+This is a maintained fork of [Medvedolog/luci-app-torrserver](https://github.com/Medvedolog/luci-app-torrserver). The server is built from the official [YouROK/TorrServer](https://github.com/YouROK/TorrServer) sources. It runs directly on OpenWrt: no Docker or Entware is required on the router.
 
-- **`torrserver`** — основной daemon-пакет с бинарником TorrServer и `procd` service.
-- **`torrserver-upx`** — вариант daemon-пакета с UPX-сжатым бинарником.
-- **`torrserver-official`** — опциональный пакет с официальным upstream binary автора.
-- **`luci-app-torrserver`** — лёгкий LuCI companion UI для управления и мониторинга.
+## Supported platform
 
-Цель проекта: **маленький бинарник**, **нормальный init/procd service**, **IPK/APK релизы** и **простая LuCI-страница без тяжёлых RPC-зависимостей**.
+| Component | Version / target |
+| --- | --- |
+| OpenWrt | 25.12.5, APK package manager |
+| Architecture | `aarch64_generic` / Linux ARM64 |
+| Server | MatriX.147, pinned upstream commit `a86d8fa7fd4e07605f240fe69bf299392f7cb023` |
+| LuCI | 3.0.0 |
+| Package format | APKv3, built by the OpenWrt SDK |
 
----
+Other architectures and older OpenWrt releases are not currently built. An ARM64 CPU alone does not guarantee that the package architecture matches your firmware.
 
-## ✨ Что умеет LuCI UI
+## Packages
 
-| Блок | Что показывает |
-|---|---|
-| 🟢 Service | состояние сервиса, PID, кнопки `Start / Stop / Restart`, переход в Web UI |
-| 🧠 RAM | RSS процесса, системная RAM, free/total |
-| ⚙️ CPU | CPU процесса TorrServer |
-| 📊 Cores | загрузка CPU по ядрам |
-| 📜 Log | журнал TorrServer через backend fallback chain |
-| 🛠️ Settings | основные и дополнительные UCI-настройки |
+- `torrserver`: static ARM64 server, procd service, UCI configuration and CA certificate dependency.
+- `luci-app-torrserver`: LuCI settings, service controls, version, memory use and system log. Installs the server as a dependency.
 
-UI доступен в меню:
+Settings use standard LuCI Save / Save & Apply / Reset behavior. Changing a checkbox does not immediately modify the running service. Authentication credentials can be configured in LuCI. The server shuts down through SIGTERM; the incompatible `--dontkill` option is not used.
 
-```text
-Services → TorrServer
-```
+## Install
 
----
-
-## 🧱 Архитектура LuCI после рефакторинга
-
-LuCI companion переведён на модель `luci-app-podkop-bot`:
-
-> **Backend решает, frontend рисует.**
-
-### Backend
-
-Основной read-backend — штатный `rpcd` executable plugin:
-
-```text
-/usr/libexec/rpcd/luci.torrserver
-```
-
-На переходный период также ставится legacy-дубль:
-
-```text
-/usr/libexec/rpcd/torrserver
-```
-
-Методы:
+Check the firmware first:
 
 ```sh
-/usr/libexec/rpcd/luci.torrserver list
-/usr/libexec/rpcd/luci.torrserver call status
-/usr/libexec/rpcd/luci.torrserver call log
+cat /etc/openwrt_release
 ```
 
-`list` отдаёт:
-
-```json
-{"status":{},"log":{}}
-```
-
-### Frontend
-
-Frontend больше не парсит чужие raw `ubus`-ответы:
-
-- ❌ нет `luci.getProcessList`
-- ❌ нет `luci.getInitList`
-- ❌ нет `system.info`
-- ❌ нет frontend-конвертации байты/kB
-- ❌ нет fallback-эмуляции частичного статуса
-
-В JS остались только:
-
-```js
-luci.torrserver.status
-luci.torrserver.log
-luci.setInitAction
-```
-
-Управление сервисом остаётся через штатный LuCI write-path:
-
-```js
-rpc.declare({
-    object: 'luci',
-    method: 'setInitAction',
-    params: [ 'name', 'action' ],
-    expect: { result: false }
-});
-```
-
-Это уменьшает write-поверхность собственного backend: `luci.torrserver` отвечает за мониторинг и логи, а start/stop/restart делает стандартный LuCI backend.
-
----
-
-## 📦 Что собирается в полном релизе
-
-Полный release workflow публикует daemon-пакеты, LuCI companion и контрольные файлы.
-
-### Daemon-пакеты
-
-| Пакет | Binary source | Когда использовать |
-|---|---|---|
-| `torrserver` | optimized self-build | рекомендуемый вариант по умолчанию |
-| `torrserver-upx` | optimized self-build + UPX | когда важен минимальный размер flash/overlay |
-| `torrserver-official` | official upstream binary | для provenance/debug или режима `upstream-official` / `both` |
-
-Все daemon-пакеты кладут одинаковые runtime-пути:
-
-```text
-/usr/bin/torrserver
-/etc/init.d/torrserver
-/etc/config/torrserver
-```
-
-Поэтому `luci-app-torrserver` работает с любым daemon-вариантом, если эти файлы есть.
-
-### LuCI-пакет
-
-`luci-app-torrserver` содержит:
-
-```text
-/www/luci-static/resources/view/torrserver/overview.js
-/usr/share/luci/menu.d/luci-app-torrserver.json
-/usr/share/rpcd/acl.d/luci-app-torrserver.json
-/usr/libexec/rpcd/luci.torrserver
-/usr/libexec/rpcd/torrserver        # legacy copy, временно
-```
-
-LuCI-пакет **не содержит daemon-бинарник** и **не зависит жёстко от имени daemon-пакета**.
-
-### Контрольные файлы
-
-В релизе также публикуются:
-
-```text
-SHA256SUMS.txt
-UPSTREAM_BINARY.txt
-standalone binaries, если включены workflow-параметрами
-```
-
----
-
-## 🧭 Платформы и форматы пакетов
-
-### OpenWrt 21–24 → IPK
-
-Для OpenWrt 21–24 используйте `.ipk`:
-
-```text
-torrserver_<version>_aarch64_generic.ipk
-torrserver_<version>_aarch64_cortex-a53.ipk
-torrserver_<version>_x86_64.ipk
-torrserver-upx_<version>_<arch>.ipk
-luci-app-torrserver_<version>_all.ipk
-```
-
-### OpenWrt 25+ → APK
-
-Для OpenWrt 25+ используйте `.apk`:
-
-```text
-torrserver_<version>_aarch64_generic.apk
-torrserver_<version>_aarch64_cortex-a53.apk
-torrserver_<version>_x86_64.apk
-torrserver-upx_<version>_<arch>.apk
-luci-app-torrserver_<version>_noarch.apk
-```
-
-### Daemon architecture matrix
-
-| OpenWrt arch | Go target | Binary | Для чего |
-|---|---|---|---|
-| `aarch64_generic` | `linux/arm64` | arm64 self-build | обычные ARM64 OpenWrt-устройства |
-| `aarch64_cortex-a53` | `linux/arm64` | тот же arm64 self-build | ARM64 targets с OpenWrt arch label `aarch64_cortex-a53` |
-| `x86_64` | `linux/amd64` | отдельный amd64 self-build | OpenWrt x86_64, mini-PC, VM, bare-metal |
-
-### LuCI architecture
-
-`luci-app-torrserver` не содержит нативного кода:
-
-| Формат | Arch |
-|---|---|
-| `.ipk` | `all` |
-| `.apk` | `noarch` |
-
----
-
-## 🚀 Быстрая установка
-
-### 1. Установить daemon
-
-Выберите один вариант:
+Download both APKs from the same release and upload them to `/tmp` on the router. Verify their SHA256 checksums against the release's `SHA256SUMS`. Install the downloaded local files:
 
 ```sh
-# OpenWrt 21–24
-opkg install ./torrserver_<version>_<arch>.ipk
-# или
-opkg install ./torrserver-upx_<version>_<arch>.ipk
+apk update
+apk add --allow-untrusted /tmp/torrserver-147-r1.apk /tmp/luci-app-torrserver-3.0.0-r1.apk
 ```
+
+The release lists the exact filenames. `--allow-untrusted` is required for these standalone packages; a signed package feed is not provided. Standard dependencies come from your configured OpenWrt feeds.
+
+Open **Services → TorrServer** in LuCI. TorrServer's own web interface is available at `http://ROUTER-IP:8090`. Authentication is initially off. No WAN firewall rules are created. Configure a bind address and authentication as appropriate for your network.
+
+The default data directory is `/opt/torrserver`. Ensure enough free storage for the binary, package installation and your chosen cache. Cache configuration belongs to TorrServer's own web interface; the maximum stream size field is in bytes and is not a RAM cache limit. High bitrate streams may need substantially more RAM and CPU than basic router workloads.
+
+## Upgrade and migrate
+
+Back up `/etc/config/torrserver` and the configured data directory before migration. Install both new packages together. The UCI file is marked as a configuration file and is preserved on upgrade; the service keeps the configured data path. Existing databases are not deleted by the package.
+
+For users of the original fork:
+
+- Keep the existing `path`, port and proxy settings.
+- The old `dontkill` option is ignored so procd can stop the process normally.
+- Legacy `tg` and `fuse` UCI options map to upstream `-T` and `-f`.
+- An existing `accs.db` can still be used if no new credentials are configured. Fill both authentication fields in LuCI to manage credentials there.
+- `torrserver-upx` and `torrserver-official` are not provided. Remove an old alternative daemon package before installing `torrserver`, preserving its data first.
+- A previous APKv2 package may not be accepted by your APKv3 package manager. Do not force an incompatible package database conversion.
+
+New credentials replace `accs.db` with the configured single user. Credentials are stored as plaintext in root-readable files, not password hashes; `/etc/config/torrserver` and `accs.db` are restricted to mode `0600`. Disabling authentication keeps the credential file for later use.
+
+## Diagnostics
 
 ```sh
-# OpenWrt 25+
-apk add ./torrserver_<version>_<arch>.apk
-# или
-apk add ./torrserver-upx_<version>_<arch>.apk
-```
-
-### 2. Установить LuCI companion
-
-```sh
-# OpenWrt 21–24
-opkg install ./luci-app-torrserver_<version>_all.ipk
-```
-
-```sh
-# OpenWrt 25+
-apk add ./luci-app-torrserver_<version>_noarch.apk
-```
-
-### 3. Перезапустить сервисы web/RPC
-
-```sh
-/etc/init.d/rpcd restart
-/etc/init.d/uhttpd reload
-rm -f /tmp/luci-indexcache /tmp/luci-modulecache/*
-```
-
-После этого открыть:
-
-```text
-LuCI → Services → TorrServer
-```
-
----
-
-## ✅ Проверка после установки
-
-```sh
-ls -l /usr/bin/torrserver
-ls -l /etc/init.d/torrserver
-ls -l /usr/libexec/rpcd/luci.torrserver
-
-/etc/init.d/torrserver enable
-/etc/init.d/torrserver start
-/etc/init.d/rpcd restart
-
-ubus -v list luci.torrserver
+/etc/init.d/torrserver status
 ubus call luci.torrserver status
-ubus call luci.torrserver log
-ubus call luci setInitAction '{"name":"torrserver","action":"restart"}'
+logread -e torrserver
+/usr/bin/torrserver --version
 ```
 
-Ожидаемые признаки исправной установки:
-
-- `ubus -v list luci.torrserver` показывает методы `status` и `log`.
-- `status.service.running` становится `true` при запущенном daemon.
-- `status.proc.available` становится `true` при найденном PID.
-- `status.proc.cores` содержит массив загрузки ядер.
-- `log.lines` содержит строки TorrServer из `logread` или файлов логов.
-- `setInitAction` возвращает `{ "result": true }`.
-
----
-
-## 🔧 Настройки через LuCI
-
-### Основные
-
-| Поле | Значение |
-|---|---|
-| `enabled` | автозапуск / soft-enable сервиса |
-| `port` | HTTP/Web UI порт TorrServer |
-| `path` | рабочая директория данных |
-| `proxymode` | режим проксирования: `tracker`, `peers`, `full` |
-
-### Дополнительные
-
-| Поле | Что настраивает |
-|---|---|
-| `ip` | bind address HTTP server |
-| `dontkill` | режим `--dontkill` |
-| `httpauth` | встроенная HTTP-авторизация TorrServer |
-| `rdb` | RDB режим |
-| `logpath` | файл daemon-лога |
-| `weblogpath` | файл web-лога |
-| `torrentsdir` | каталог `.torrent` файлов |
-| `torrentaddr` | внешний listen address |
-| `pubipv4` / `pubipv6` | публичные IP |
-| `searchwa` | search/web ассистент режим |
-| `maxsize` | максимальный размер |
-| `tg` | Telegram-интеграция |
-| `fuse` | FUSE режим |
-| `webdav` | WebDAV режим |
-| `proxyurl` | upstream proxy URL |
-
-Подсказки отображаются компактными `?` tooltip'ами рядом с полями.
-
----
-
-## 🧪 Changelog beta
-
-### Backend / RPC
-
-- ♻️ Переписан LuCI backend на один `rpcd` executable object `luci.torrserver`.
-- 🧹 Удалён frontend-парсинг чужих `ubus` форматов.
-- 🧠 Метрики CPU/RAM/RSS/per-core считаются в backend по `/proc`.
-- 🕒 Добавлен TTL cache для `status` и отдельный CPU delta state.
-- 🔐 ACL минимизирован: read только `luci.torrserver` + UCI, write только `luci.setInitAction` + UCI.
-
-### Logs
-
-- 📜 `log` теперь работает через backend fallback chain:
-  1. `logread -e torrserver`
-  2. `logread -e TorrServer`
-  3. `logread | grep -Ei 'torrserver|TorrServer|/usr/bin/torrserver'`
-  4. UCI `logpath`
-  5. UCI `weblogpath`
-
-### UI/UX
-
-- ⏳ `Start / Stop / Restart` показывают pending-state.
-- 🔒 Кнопки блокируются на время операции.
-- 🧭 `Stopping...` ждёт исчезновения PID.
-- 🧭 `Starting...` ждёт появления PID.
-- 🧭 `Restarting...` ждёт смены PID.
-- 🧯 Исправлен баг LuCI boolean attributes: больше нет `disabled="false"`.
-- 🧩 Tooltip'ы оставлены компактными `?` вместо длинных подписей под полями.
-- 🌐 Web UI URL строится от hostname текущей LuCI-сессии.
-
-### Packaging
-
-- 📦 Добавлен `x86_64` fullpack.
-- 📦 Собираются `.ipk` и `.apk`.
-- 📦 Full workflow собирает daemon + UPX + LuCI в одном релизе.
-- 🧪 Standalone LuCI workflow оставлен для быстрых правок интерфейса.
-- 📥 Import workflow обновлён под source layout `luci/rpcd/luci.torrserver`.
-
----
-
-## 🏗️ Как устроены workflow
-
-### Full release workflow
-
-```text
-.github/workflows/build_torrserver_apk_ipk.yml
-```
-
-Собирает:
-
-- `torrserver`
-- `torrserver-upx`
-- опционально `torrserver-official`
-- `luci-app-torrserver`
-- `SHA256SUMS.txt`
-- `UPSTREAM_BINARY.txt`
-
-Основные параметры:
-
-| Input | Значения | Назначение |
-|---|---|---|
-| `version` | `latest`, tag, branch, commit SHA | upstream ref TorrServer |
-| `binary_source` | `build-optimized`, `upstream-official`, `both` | источник daemon binary |
-| `use_upx` | `true/false` | собирать `torrserver-upx` |
-| `include_luci` | `true/false` | приложить LuCI companion |
-
-Рекомендуемый beta-набор:
-
-```text
-version: latest
-binary_source: build-optimized
-use_upx: true
-include_luci: true
-```
-
-### Standalone LuCI workflow
-
-```text
-.github/workflows/Build LuCI App TorrServer Companion.yml
-```
-
-Собирает только:
-
-```text
-luci-app-torrserver_<version>_all.ipk
-luci-app-torrserver_<version>_noarch.apk
-SHA256SUMS.txt
-```
-
-Использовать, когда менялись только:
-
-- `overview.js`
-- `luci.torrserver`
-- ACL/menu
-- README/metadata LuCI package
-
----
-
-## 📉 Оптимизация размера бинарника
-
-Основная optimized-сборка использует:
+Stopping the server manually does not disable startup. To keep it stopped after reboot or settings reload:
 
 ```sh
-CGO_ENABLED=0
-go build \
-  -trimpath \
-  -buildvcs=false \
-  -tags 'nosqlite' \
-  -ldflags='-s -w -checklinkname=0 -buildid='
-strip --strip-unneeded torrserver
+uci set torrserver.main.enabled='0'
+uci commit torrserver
+/etc/init.d/torrserver restart
 ```
 
-UPX-вариант дополнительно:
+Uninstall with `apk del luci-app-torrserver torrserver`. The data directory is retained; back it up before any manual removal. Keeping data on external storage requires that storage to be mounted before the service starts.
+
+## Build and verification
+
+GitHub Actions builds the upstream web UI and static ARM64 Go binary using `CGO_ENABLED=0`, packages both components with the pinned OpenWrt 25.12.5 SDK, and tests the packages in an emulated ARM64 OpenWrt container. No UPX compression or GStreamer variant is used.
+
+The smoke test covers installation, version, HTTP API and web UI, rpcd registration, stopping, authentication, reinstallation with retained configuration, disabling and removal. The container test does not establish real router streaming performance, external-storage startup behavior, or VPN compatibility.
+
+Each successful artifact includes `BUILDINFO.txt`, the upstream GPL license, SHA256 checksums and a smoke-test report. Failed checks do not automatically publish a release. Build artifacts are available from Actions; releases are published after reviewing a successful run.
+
+For a local Linux build, install Go as specified in upstream `server/go.mod`, Node.js 20, Yarn 1.22.22 and the OpenWrt SDK prerequisites. Clone the pinned upstream commit into `.build/upstream`, then run:
 
 ```sh
-upx --best --lzma torrserver
+bash scripts/build-upstream.sh .build/upstream .build
+bash scripts/build-packages.sh /absolute/path/to/openwrt-sdk .build/torrserver
 ```
 
-Практически это даёт два варианта:
-
-| Вариант | Приоритет |
-|---|---|
-| `torrserver` | обычная стабильность и предсказуемость |
-| `torrserver-upx` | минимальный размер overlay/flash |
-
----
-
-## 📚 Upstream и версия
-
-Daemon собирается из официального upstream:
-
-```text
-YouROK/TorrServer
-```
-
-Workflow умеет брать:
-
-- конкретный tag;
-- branch;
-- commit SHA;
-- `latest`.
-
-Для upstream-тегов вида:
-
-```text
-MatriX.142
-```
-
-пакетная версия нормализуется в:
-
-```text
-142
-```
-
-Для нерелизных ref используется dev fallback:
-
-```text
-0.0.0-dev.N
-```
-
----
-
-## 🚫 Что не является целью проекта
-
-Проект не пытается:
-
-- заменить upstream TorrServer;
-- управлять обновлением самого TorrServer-бинаря из LuCI;
-- делать hardened admin panel;
-- тащить тяжёлые LuCI/RPC зависимости ради простого мониторинга.
-
-Цель проще:
-
-- компактный TorrServer для OpenWrt;
-- нормальный `init.d`/`procd` service;
-- пакеты `.ipk`/`.apk`;
-- простая домашняя LuCI-морда.
-
----
-
-## 🪪 License / Upstream notice
-
-TorrServer собирается из официального upstream-репозитория:
-
-```text
-YouROK/TorrServer
-```
-
-Собственная часть этого репозитория — packaging, workflows и LuCI companion.
+This repository packages TorrServer; it does not maintain a divergent server implementation. TorrServer is GPL-3.0 licensed. The original LuCI repository did not include a standalone license file at the fork point; its authorship and repository history are retained.

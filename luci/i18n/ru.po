@@ -1,0 +1,163 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "Loading service status…"
+msgstr "Загрузка состояния службы…"
+
+msgid "Open TorrServer"
+msgstr "Открыть TorrServer"
+
+msgid "Incomplete status response"
+msgstr "Неполный ответ службы состояния"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Stopped"
+msgstr "Остановлен"
+
+msgid "Version"
+msgstr "Версия"
+
+msgid "Available system memory"
+msgstr "Доступно памяти системе"
+
+msgid "Status unavailable"
+msgstr "Состояние недоступно"
+
+msgid "Start"
+msgstr "Запустить"
+
+msgid "Stop"
+msgstr "Остановить"
+
+msgid "Restart"
+msgstr "Перезапустить"
+
+msgid "Applying service action…"
+msgstr "Выполнение действия…"
+
+msgid "Service action failed"
+msgstr "Не удалось выполнить действие со службой"
+
+msgid "No log entries"
+msgstr "Записей в журнале нет"
+
+msgid "Show / hide log"
+msgstr "Показать / скрыть журнал"
+
+msgid "Torrent streaming server. Settings are applied only after Save & Apply. Streaming and torrent management are available in the TorrServer web interface."
+msgstr "Сервер потокового воспроизведения торрентов. Настройки вступают в силу после сохранения и применения. Торренты и воспроизведение доступны в веб-интерфейсе самого TorrServer."
+
+msgid "General"
+msgstr "Основные"
+
+msgid "Authentication"
+msgstr "Авторизация"
+
+msgid "Proxy"
+msgstr "Прокси"
+
+msgid "Advanced"
+msgstr "Дополнительные"
+
+msgid "Enable service"
+msgstr "Включить службу"
+
+msgid "Allow startup at boot and after applying settings. Disable this option to keep the service stopped."
+msgstr "Разрешить запуск при загрузке и применении настроек. Выключите этот параметр, чтобы служба оставалась остановленной."
+
+msgid "HTTP port"
+msgstr "HTTP-порт"
+
+msgid "Bind address"
+msgstr "Адрес прослушивания"
+
+msgid "Empty listens on all interfaces. Use a local router address to restrict the listener. No firewall ports are opened by this package."
+msgstr "Пустое значение — все интерфейсы. Укажите локальный адрес роутера для ограничения прослушивания. Пакет не открывает порты в межсетевом экране."
+
+msgid "Data directory"
+msgstr "Каталог данных"
+
+msgid "Database and settings directory. Keep the existing path when upgrading. Cache settings are managed in TorrServer itself."
+msgstr "Каталог базы и настроек. При обновлении сохраняйте прежний путь. Кеш настраивается в самом TorrServer."
+
+msgid "Use an absolute path"
+msgstr "Укажите абсолютный путь"
+
+msgid "Require HTTP authentication"
+msgstr "Требовать HTTP-авторизацию"
+
+msgid "Username"
+msgstr "Логин"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Credentials are stored locally in the root-only UCI configuration and accs.db. Set both fields when enabling authentication."
+msgstr "Учётные данные хранятся локально в UCI и accs.db с доступом только root. При включении авторизации заполните оба поля."
+
+msgid "Proxy URL"
+msgstr "Адрес прокси"
+
+msgid "Optional HTTP or SOCKS proxy for TorrServer. Transparent VPN routing is configured separately in your router software."
+msgstr "Необязательный HTTP- или SOCKS-прокси для TorrServer. Прозрачная маршрутизация через VPN настраивается отдельно средствами роутера."
+
+msgid "Proxy mode"
+msgstr "Режим прокси"
+
+msgid "HTTP trackers"
+msgstr "HTTP-трекеры"
+
+msgid "Peer connections"
+msgstr "Подключения к пирам"
+
+msgid "All supported traffic"
+msgstr "Весь поддерживаемый трафик"
+
+msgid "Read-only database"
+msgstr "База только для чтения"
+
+msgid "Enable WebDAV"
+msgstr "Включить WebDAV"
+
+msgid "Log file"
+msgstr "Файл журнала"
+
+msgid "Empty uses the system log. Avoid unlimited logs on internal flash."
+msgstr "Пустое значение — системный журнал. Не сохраняйте неограниченные журналы во внутреннюю флеш-память."
+
+msgid "Web log file"
+msgstr "Файл веб-журнала"
+
+msgid "Torrent autoload directory"
+msgstr "Каталог автозагрузки торрентов"
+
+msgid "Torrent listen address"
+msgstr "Адрес торрент-подключений"
+
+msgid "For example :6881 or 192.168.1.1:6881."
+msgstr "Например, :6881 или 192.168.1.1:6881."
+
+msgid "Announced IPv4 address"
+msgstr "Публикуемый IPv4-адрес"
+
+msgid "Announced IPv6 address"
+msgstr "Публикуемый IPv6-адрес"
+
+msgid "Maximum stream size in bytes"
+msgstr "Максимальный размер потока в байтах"
+
+msgid "Limits the stream size, not the RAM cache. Empty leaves the upstream default."
+msgstr "Ограничивает размер потока, а не RAM-кеш. Пустое значение оставляет стандартное поведение TorrServer."
+
+msgid "Telegram bot token"
+msgstr "Токен Telegram-бота"
+
+msgid "FUSE mount directory"
+msgstr "Каталог монтирования FUSE"
+
+msgid "Requires working FUSE support and a mounted destination on the router."
+msgstr "Требует работающей поддержки FUSE и доступного каталога на роутере."
