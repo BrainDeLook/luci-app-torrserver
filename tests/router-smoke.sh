@@ -63,7 +63,7 @@ if wget -q --post-data='{"action":"list"}' -O /tmp/torrserver-private http://127
 	echo 'Protected API accepted an unauthenticated request' >&2
 	exit 1
 fi
-credentials="$(printf '%s' 'smoke:test-"quote\slash' | base64 | tr -d '\n')"
+credentials='c21va2U6dGVzdC0icXVvdGVcc2xhc2g='
 wget -q --header="Authorization: Basic $credentials" --post-data='{"action":"list"}' -O /tmp/torrserver-private http://127.0.0.1:18090/torrents
 printf '%s\n' 'CHECK: reinstall and configuration retention'
 apk add --allow-untrusted --force-reinstall /packages/torrserver-*.apk
