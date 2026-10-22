@@ -92,11 +92,15 @@ Each successful artifact includes `BUILDINFO.txt`, the upstream GPL license, SHA
 
 Maintainers can run **Publish verified release** with the successful build run ID. It accepts only successful builds of this repository's `main`, checks hashes and the smoke-test result, verifies APKv3 headers, and publishes the exact tested commit. The first release defaults to prerelease status pending physical-router testing.
 
-For a local Linux build, install Go as specified in upstream `server/go.mod`, Node.js 20, Yarn 1.22.22 and the OpenWrt SDK prerequisites. Clone the pinned upstream commit into `.build/upstream`, then run:
+For a local Linux server build, install Go as specified in upstream `server/go.mod`, Node.js 20 and Yarn 1.22.22. Clone the pinned upstream commit into `.build/upstream`, then run:
 
 ```sh
 bash scripts/build-upstream.sh .build/upstream .build
-bash scripts/build-packages.sh /absolute/path/to/openwrt-sdk .build/torrserver
+bash scripts/prepare-feed.sh .build/torrserver
 ```
+
+The prepared `packages/` directory is an OpenWrt feed. The authoritative APK build is `.github/workflows/build.yml`: it uses the official `openwrt/gh-action-sdk` action pinned to a commit and the `aarch64_generic-25.12.5` SDK image. It installs only the requested packages and their dependencies. Use that workflow to reproduce the released packages.
+
+Firmware sysupgrade does not automatically back up the data directory. Back up that directory separately before replacing firmware.
 
 This repository packages TorrServer; it does not maintain a divergent server implementation. TorrServer is GPL-3.0 licensed. The original LuCI repository did not include a standalone license file at the fork point; its authorship and repository history are retained.

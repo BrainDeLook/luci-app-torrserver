@@ -6,6 +6,7 @@ PKG_RELEASE:=1
 PKG_LICENSE:=GPL-3.0-only
 PKG_MAINTAINER:=BrainDeLook
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+TORRSERVER_BINARY?=$(CURDIR)/files/torrserver
 
 include $(INCLUDE_DIR)/package.mk
 

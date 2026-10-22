@@ -75,14 +75,22 @@ jobs:
             .build/BUILDINFO.txt
             .build/TORRSERVER-LICENSE.txt
           key: torrserver-arm64-147-${{ hashFiles('scripts/build-upstream.sh') }}
-      - name: Download pinned OpenWrt 25.12.5 SDK
-        run: |
-          curl -fL --retry 3 https://downloads.openwrt.org/releases/25.12.5/targets/armsr/armv8/openwrt-sdk-25.12.5-armsr-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst -o .build/sdk.tar.zst
-          echo '1b0316604a3e820b2b008a1baff3f9dac6716af942bef800930e58c7de98c98b  .build/sdk.tar.zst' | sha256sum -c
-          mkdir sdk
-          tar --zstd -xf .build/sdk.tar.zst --strip-components=1 -C sdk
+      - name: Prepare package feed
+        run: bash scripts/prepare-feed.sh .build/torrserver
       - name: Build native APKv3 packages
-        run: bash scripts/build-packages.sh sdk .build/torrserver
+        uses: openwrt/gh-action-sdk@f5813d30eeef3534b58ac7e79c5d8842b6035434
+        env:
+          ARCH: aarch64_generic-25.12.5
+          FEEDNAME: torrserver
+          FEED_DIR: ${{ github.workspace }}/packages
+          ARTIFACTS_DIR: ${{ github.workspace }}/.build/sdk-output
+          PACKAGES: torrserver luci-app-torrserver
+          INDEX: '0'
+          NO_REFRESH_CHECK: '1'
+          NO_SHFMT_CHECK: '1'
+          BUILD_LOG: '1'
+      - name: Collect and verify APKv3 artifacts
+        run: bash scripts/collect-packages.sh .build/sdk-output
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -103,6 +111,12 @@ jobs:
         run: |
           docker logs torrserver-test || true
           docker exec torrserver-test logread || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sdk-diagnostics
+          path: .build/sdk-output/logs/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: torrserver-147-r1-openwrt-25.12.5-aarch64_generic

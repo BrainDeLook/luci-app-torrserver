@@ -4,3 +4,6 @@ sdk/
 node_modules/
 *.pem
 *.key
+/packages/torrserver/files/torrserver
+/packages/luci-app-torrserver/root/
+/packages/luci-app-torrserver/po/
