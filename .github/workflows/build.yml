@@ -32,6 +32,7 @@ jobs:
           sh -n packages/torrserver/files/torrserver.init
           sh -n luci/rpcd/luci.torrserver
           sh -n tests/router-smoke.sh
+          sh -n tests/container-init.sh
           git diff --check
       - name: Install build tools
         timeout-minutes: 5
@@ -90,7 +91,7 @@ jobs:
           curl -fL --retry 3 https://downloads.openwrt.org/releases/25.12.5/targets/armsr/armv8/openwrt-25.12.5-armsr-armv8-rootfs.tar.gz -o .build/rootfs.tar.gz
           echo '493336e176fdc1d6a377763e87a58c5854c24f51e83e586b209783e4bb648d42  .build/rootfs.tar.gz' | sha256sum -c
           docker import --platform linux/arm64 .build/rootfs.tar.gz torrserver-test
-          docker run -d --name torrserver-test --platform linux/arm64 --privileged -v "$PWD/dist:/packages:ro" -v "$PWD/tests:/tests:ro" torrserver-test /sbin/init
+          docker run -d --name torrserver-test --platform linux/arm64 --privileged -v "$PWD/dist:/packages:ro" -v "$PWD/tests:/tests:ro" torrserver-test /bin/sh /tests/container-init.sh
           for attempt in $(seq 1 30); do
             if docker exec torrserver-test ubus call system board; then break; fi
             sleep 2
