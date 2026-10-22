@@ -115,6 +115,7 @@ jobs:
           platforms: arm64
       - name: Verify installation and service in OpenWrt ARM64
         run: |
+          mkdir -p .build
           curl -fL --retry 3 https://downloads.openwrt.org/releases/25.12.5/targets/armsr/armv8/openwrt-25.12.5-armsr-armv8-rootfs.tar.gz -o .build/rootfs.tar.gz
           echo '493336e176fdc1d6a377763e87a58c5854c24f51e83e586b209783e4bb648d42  .build/rootfs.tar.gz' | sha256sum -c
           docker import --platform linux/arm64 .build/rootfs.tar.gz torrserver-test
