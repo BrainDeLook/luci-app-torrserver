@@ -131,6 +131,9 @@ jobs:
             if docker exec torrserver-test logread | grep -q 'init complete'; then break; fi
             sleep 1
           done
+          container_address="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}/{{.IPPrefixLen}}{{end}}' torrserver-test)"
+          container_gateway="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' torrserver-test)"
+          docker exec torrserver-test /bin/sh -c 'set -e; ip link set eth0 up; ip addr add "$1" dev eth0; ip route replace default via "$2" dev eth0' sh "$container_address" "$container_gateway"
           docker exec torrserver-test ip route
           docker exec torrserver-test cat /etc/resolv.conf
           docker exec -i torrserver-test /bin/sh -c 'cat > /etc/resolv.conf' < .build/test-resolv.conf
