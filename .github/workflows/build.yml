@@ -33,6 +33,7 @@ jobs:
           sh -n luci/rpcd/luci.torrserver
           sh -n tests/router-smoke.sh
           sh -n tests/container-init.sh
+          sh -n tests/installer-fetch.sh
           sh -n install.sh
           git diff --check
       - uses: actions/cache/restore@v4

@@ -32,10 +32,14 @@ Settings use standard LuCI Save / Save & Apply / Reset behavior. Changing a chec
 Run as `root` on the router:
 
 ```sh
-wget -O /tmp/torrserver-install.sh https://github.com/BrainDeLook/luci-app-torrserver/releases/latest/download/install.sh && sh /tmp/torrserver-install.sh
+wget -O /tmp/torrserver-install.sh https://raw.githubusercontent.com/BrainDeLook/luci-app-torrserver/main/install.sh && sh /tmp/torrserver-install.sh
 ```
 
 Like the CloudPub installer, this installs **both native APKs**, not an unmanaged binary. It checks OpenWrt 25.12.5, `aarch64_generic`, `apk`, free space (64 MiB in `/tmp`, 96 MiB on the system filesystem), SHA256 and APKv3 headers before modifying packages. Each installer pins its own release and package versions.
+
+Downloads first use the official `api.github.com` asset API, redirecting to `release-assets.githubusercontent.com` without contacting `github.com`. If the API fails (including rate limiting), the installer falls back to the normal release URL. No third-party mirror is used. Network errors are visible; if both routes fail, no packages are installed.
+
+Use `--download-only` to test actual downloads and checksums without installing anything. Temporary downloads are cleaned up on exit. `--download-source api` disallows the `github.com` fallback; `--download-source github` forces normal release URLs.
 
 Upgrades retain UCI configuration and the data directory. Existing `/etc/config/torrserver` and `accs.db` are also copied into a root-only `/etc/torrserver-backups/DATE-PID` directory before installation. Backups contain credentials: do not share them. They are not automatically pruned and do not replace a full data-directory backup.
 
@@ -107,6 +111,8 @@ GitHub Actions builds the upstream web UI and static ARM64 Go binary using `CGO_
 The smoke test covers installation, version, HTTP API and web UI, rpcd registration, stopping, authentication, reinstallation with retained configuration, disabling and removal. The container test does not establish real router streaming performance, external-storage startup behavior, or VPN compatibility.
 
 Each successful artifact includes `BUILDINFO.txt`, the upstream GPL license, SHA256 checksums and a smoke-test report. Failed checks do not automatically publish a release. Build artifacts are available from Actions; releases are published after reviewing a successful run.
+
+Installer-only fixes can retain unchanged APKs. `INSTALLER-BUILDINFO.txt` separately records the installer's source commit; installer checksums and smoke-test results are updated with it.
 
 Maintainers can run **Publish verified release** with the successful build run ID. It accepts only successful builds of this repository's `main`, checks hashes and the smoke-test result, verifies APKv3 headers, and publishes the exact tested commit. The first release defaults to prerelease status pending physical-router testing.
 

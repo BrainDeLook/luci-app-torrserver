@@ -12,6 +12,33 @@ wait_http() {
 
 printf '%s\n' 'CHECK: package installation and executable version'
 sh /packages/install.sh --check
+printf '%s\n' 'CHECK: API download works when github.com is unavailable'
+fetch_bin="$(mktemp -d /tmp/torrserver-fetch.XXXXXX)"
+cp /tests/installer-fetch.sh "$fetch_bin/uclient-fetch"
+chmod +x "$fetch_bin/uclient-fetch"
+FETCH_TRACE=/tmp/torrserver-fetch.trace
+export FETCH_TRACE
+: > "$FETCH_TRACE"
+PATH="$fetch_bin:$PATH" FETCH_MODE=api sh /packages/install.sh --download-only
+test "$(wc -l < "$FETCH_TRACE")" -eq 4
+if grep -q '^https://github.com/' "$FETCH_TRACE"; then
+	echo 'API download unexpectedly accessed github.com' >&2
+	exit 1
+fi
+printf '%s\n' 'CHECK: API failure falls back to github.com'
+: > "$FETCH_TRACE"
+PATH="$fetch_bin:$PATH" FETCH_MODE=fallback sh /packages/install.sh --download-only
+test "$(grep -c '^https://api.github.com/' "$FETCH_TRACE")" -eq 1
+test "$(grep -c '^https://github.com/' "$FETCH_TRACE")" -eq 3
+printf '%s\n' 'CHECK: unavailable downloads produce a visible error and no installation'
+if PATH="$fetch_bin:$PATH" FETCH_MODE=fail sh /packages/install.sh --download-only > /tmp/torrserver-download-error 2>&1; then
+	echo 'Installer accepted failed downloads' >&2
+	exit 1
+fi
+grep -F 'ERROR: Cannot download SHA256SUMS' /tmp/torrserver-download-error
+rm -rf "$fetch_bin"
+printf '%s\n' 'CHECK: real public API downloads with OpenWrt uclient-fetch'
+sh /packages/install.sh --download-source api --download-only
 printf '%s\n' 'CHECK: installer rejects corrupted downloads before installing'
 bad_packages="$(mktemp -d /tmp/torrserver-bad.XXXXXX)"
 cp /packages/*.apk /packages/SHA256SUMS "$bad_packages/"
@@ -103,4 +130,4 @@ until [ "$(ubus call luci.torrserver status | jsonfilter -e '@.service.running')
 done
 apk del luci-app-torrserver torrserver
 test -s /opt/torrserver/accs.db
-printf '%s\n' 'PASS: installer, corrupt-download rejection, install, API, web UI, RPC, graceful stop, auth, reinstall, config backup/retention, disabled service, removal'
+printf '%s\n' 'PASS: installer, API-only download, fallback, visible network errors, real GitHub asset API, corrupt-download rejection, install, API, web UI, RPC, graceful stop, auth, reinstall, config backup/retention, disabled service, removal'

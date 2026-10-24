@@ -1,5 +1,13 @@
 # Changelog
 
+## Installer network fix for 147-r2
+
+- Download through the official GitHub asset API first, avoiding an unreachable `github.com` frontend.
+- Fall back to regular release URLs and show errors instead of silently exiting after a failed download.
+- Add explicit download-source selection and download-only diagnostics.
+- Test blocked-frontend/API fallback cases and real GitHub API downloads with OpenWrt uclient-fetch.
+- Preserve the existing APK versions and record installer source provenance separately.
+
 ## TorrServer 147-r2 / LuCI 3.0.0-r2
 
 - Publish a version-pinned one-command installer alongside native APKs.
