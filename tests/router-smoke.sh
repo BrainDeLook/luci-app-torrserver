@@ -37,8 +37,6 @@ if PATH="$fetch_bin:$PATH" FETCH_MODE=fail sh /packages/install.sh --download-on
 fi
 grep -F 'ERROR: Cannot download SHA256SUMS' /tmp/torrserver-download-error
 rm -rf "$fetch_bin"
-printf '%s\n' 'CHECK: real public API downloads with OpenWrt uclient-fetch'
-sh /packages/install.sh --download-source api --download-only
 printf '%s\n' 'CHECK: installer rejects corrupted downloads before installing'
 bad_packages="$(mktemp -d /tmp/torrserver-bad.XXXXXX)"
 cp /packages/*.apk /packages/SHA256SUMS "$bad_packages/"
@@ -54,9 +52,25 @@ if apk info -e torrserver >/dev/null 2>&1; then
 	echo 'Rejected installer changed the package database' >&2
 	exit 1
 fi
-sh /packages/install.sh --from-dir /packages
-test "$(ls -l /etc/config/torrserver | awk '{print $1}')" = '-rw-------'
+printf '%s\n' 'CHECK: install published 147-r2 through the real GitHub API, then upgrade to 150'
+sed -e 's/v150-r1/v147-r2/g' -e 's/torrserver-150-r1.apk/torrserver-147-r2.apk/g' -e 's/luci-app-torrserver-3.0.0-r3.apk/luci-app-torrserver-3.0.0-r2.apk/g' /packages/install.sh > /tmp/torrserver-old-install.sh
+sh /tmp/torrserver-old-install.sh --download-source api
 /usr/bin/torrserver --version | grep -F MatriX.147
+uci set torrserver.main.ip=127.0.0.1
+uci set torrserver.main.port=18090
+uci set torrserver.main.httpauth=1
+uci set torrserver.main.auth_user=smoke
+uci set torrserver.main.auth_password='test-"quote\slash'
+uci commit torrserver
+/etc/init.d/torrserver restart
+wait_http
+sh /packages/install.sh --from-dir /packages
+test "$(uci get torrserver.main.port)" = 18090
+test "$(uci get torrserver.main.auth_password)" = 'test-"quote\slash'
+wait_http
+wget -q --header='Authorization: Basic c21va2U6dGVzdC0icXVvdGVcc2xhc2g=' --post-data='{"action":"list"}' -O /tmp/torrserver-upgrade http://127.0.0.1:18090/torrents
+test "$(ls -l /etc/config/torrserver | awk '{print $1}')" = '-rw-------'
+/usr/bin/torrserver --version | grep -F MatriX.150
 attempt=0
 until ubus -v list luci.torrserver > /tmp/torrserver-rpc; do
 	attempt=$((attempt + 1))
@@ -130,4 +144,4 @@ until [ "$(ubus call luci.torrserver status | jsonfilter -e '@.service.running')
 done
 apk del luci-app-torrserver torrserver
 test -s /opt/torrserver/accs.db
-printf '%s\n' 'PASS: installer, API-only download, fallback, visible network errors, real GitHub asset API, corrupt-download rejection, install, API, web UI, RPC, graceful stop, auth, reinstall, config backup/retention, disabled service, removal'
+printf '%s\n' 'PASS: installer, API-only download, fallback, visible network errors, real GitHub asset API, corrupt-download rejection, upgrade 147 to 150, API, web UI, RPC, graceful stop, auth, reinstall, config backup/retention, disabled service, removal'

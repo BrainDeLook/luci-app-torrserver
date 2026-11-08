@@ -40,7 +40,7 @@ jobs:
         id: package-cache
         with:
           path: dist/
-          key: apk-147-sdk-f5813d3-${{ hashFiles('packages/**', 'luci/**', 'scripts/build-upstream.sh', 'scripts/prepare-feed.sh', 'scripts/collect-packages.sh') }}
+          key: apk-150-sdk-f5813d3-${{ hashFiles('packages/**', 'luci/**', 'scripts/build-upstream.sh', 'scripts/prepare-feed.sh', 'scripts/collect-packages.sh') }}
       - name: Install build tools
         if: steps.package-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
@@ -52,7 +52,7 @@ jobs:
         if: steps.package-cache.outputs.cache-hit != 'true'
         with:
           repository: YouROK/TorrServer
-          ref: a86d8fa7fd4e07605f240fe69bf299392f7cb023
+          ref: 0c48c9ac78de2864f5fc9341e8caf89d355a4850
           path: .build/upstream
       - uses: actions/setup-go@v5
         if: steps.package-cache.outputs.cache-hit != 'true'
@@ -76,7 +76,7 @@ jobs:
             .build/torrserver
             .build/BUILDINFO.txt
             .build/TORRSERVER-LICENSE.txt
-          key: torrserver-arm64-147-${{ hashFiles('scripts/build-upstream.sh') }}
+          key: torrserver-arm64-150-${{ hashFiles('scripts/build-upstream.sh') }}
       - name: Build official upstream source
         if: steps.package-cache.outputs.cache-hit != 'true' && steps.upstream-cache.outputs.cache-hit != 'true'
         run: bash scripts/build-upstream.sh .build/upstream .build
@@ -87,7 +87,7 @@ jobs:
             .build/torrserver
             .build/BUILDINFO.txt
             .build/TORRSERVER-LICENSE.txt
-          key: torrserver-arm64-147-${{ hashFiles('scripts/build-upstream.sh') }}
+          key: torrserver-arm64-150-${{ hashFiles('scripts/build-upstream.sh') }}
       - name: Prepare package feed
         if: steps.package-cache.outputs.cache-hit != 'true'
         run: bash scripts/prepare-feed.sh .build/torrserver
@@ -159,6 +159,6 @@ jobs:
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
-          name: torrserver-147-r2-openwrt-25.12.5-aarch64_generic
+          name: torrserver-150-r1-openwrt-25.12.5-aarch64_generic
           path: dist/
           if-no-files-found: error

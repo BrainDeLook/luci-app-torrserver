@@ -1,5 +1,13 @@
 # Changelog
 
+## TorrServer 150-r1 / LuCI 3.0.0-r3
+
+- Update official server and embedded web UI from MatriX.147 to MatriX.150 at commit `0c48c9ac78de2864f5fc9341e8caf89d355a4850`.
+- Retain OpenWrt 25.12.5 / aarch64_generic, native APKv3, Go 1.25.7, nosqlite and the non-GStreamer build.
+- Keep the verified API-first installer, configuration retention and authentication backups.
+- Test upgrading published 147-r2 packages to 150-r1 with a custom port and password in ARM64 OpenWrt.
+- Include upstream changes to torrent caching, subtitles, API/playlist handling and the PWA web interface; GStreamer-specific features remain excluded.
+
 ## Installer network fix for 147-r2
 
 - Download through the official GitHub asset API first, avoiding an unreachable `github.com` frontend.

@@ -1,6 +1,6 @@
 # TorrServer for OpenWrt
 
-Native OpenWrt packages for **TorrServer MatriX.147**, with a LuCI management page.
+Native OpenWrt packages for **TorrServer MatriX.150**, with a LuCI management page.
 
 [Русская документация](README.ru.md) · [Downloads](https://github.com/BrainDeLook/luci-app-torrserver/releases) · [Build checks](https://github.com/BrainDeLook/luci-app-torrserver/actions)
 
@@ -12,7 +12,7 @@ This is a maintained fork of [Medvedolog/luci-app-torrserver](https://github.com
 | --- | --- |
 | OpenWrt | 25.12.5, APK package manager |
 | Architecture | `aarch64_generic` / Linux ARM64 |
-| Server | MatriX.147, pinned upstream commit `a86d8fa7fd4e07605f240fe69bf299392f7cb023` |
+| Server | MatriX.150, pinned upstream commit `0c48c9ac78de2864f5fc9341e8caf89d355a4850` |
 | LuCI | 3.0.0 |
 | Package format | APKv3, built by the OpenWrt SDK |
 
@@ -59,7 +59,7 @@ Download both APKs from the same release and upload them to `/tmp` on the router
 
 ```sh
 apk update
-apk add --allow-untrusted /tmp/torrserver-147-r2.apk /tmp/luci-app-torrserver-3.0.0-r2.apk
+apk add --allow-untrusted /tmp/torrserver-150-r1.apk /tmp/luci-app-torrserver-3.0.0-r3.apk
 ```
 
 The release lists the exact filenames. `--allow-untrusted` is required for these standalone packages; a signed package feed is not provided. Standard dependencies come from your configured OpenWrt feeds.
@@ -108,7 +108,9 @@ Uninstall with `apk del luci-app-torrserver torrserver`. The data directory is r
 
 GitHub Actions builds the upstream web UI and static ARM64 Go binary using `CGO_ENABLED=0`, packages both components with the pinned OpenWrt 25.12.5 SDK, and tests the packages in an emulated ARM64 OpenWrt container. No UPX compression or GStreamer variant is used.
 
-The smoke test covers installation, version, HTTP API and web UI, rpcd registration, stopping, authentication, reinstallation with retained configuration, disabling and removal. The container test does not establish real router streaming performance, external-storage startup behavior, or VPN compatibility.
+The smoke test covers real API downloads of the published 147-r2 packages, upgrading to 150-r1 with retained port and authentication, version, HTTP API and web UI, rpcd registration, stopping, authentication, reinstallation with retained configuration, disabling and removal. Download fallback and total failure are also tested. The container test does not establish real router streaming performance, external-storage startup behavior, or VPN compatibility.
+
+To upgrade from 147-r2, rerun the one-command installer above; do not uninstall the existing packages or delete the data directory. Native package configuration preservation and the installer's configuration/authentication backups remain enabled. This build still excludes GStreamer and SQLite; upstream GStreamer-specific fixes do not enable transcoding in these packages.
 
 Each successful artifact includes `BUILDINFO.txt`, the upstream GPL license, SHA256 checksums and a smoke-test report. Failed checks do not automatically publish a release. Build artifacts are available from Actions; releases are published after reviewing a successful run.
 

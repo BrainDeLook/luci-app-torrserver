@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-RELEASE_TAG=v147-r2
-SERVER_PACKAGE=torrserver-147-r2.apk
-LUCI_PACKAGE=luci-app-torrserver-3.0.0-r2.apk
+RELEASE_TAG=v150-r1
+SERVER_PACKAGE=torrserver-150-r1.apk
+LUCI_PACKAGE=luci-app-torrserver-3.0.0-r3.apk
 BASE_URL="https://github.com/BrainDeLook/luci-app-torrserver/releases/download/$RELEASE_TAG"
 API_URL=https://api.github.com/repos/BrainDeLook/luci-app-torrserver
 source_dir=''
