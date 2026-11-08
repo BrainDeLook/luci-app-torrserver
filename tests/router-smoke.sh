@@ -85,7 +85,7 @@ uci set torrserver.main.port=18090
 uci commit torrserver
 /etc/init.d/torrserver restart
 wait_http
-wget -q -O /tmp/torrserver-web http://127.0.0.1:18090/
+wget -q --header='Authorization: Basic c21va2U6dGVzdC0icXVvdGVcc2xhc2g=' -O /tmp/torrserver-web http://127.0.0.1:18090/
 test -s /tmp/torrserver-web
 ubus call luci.torrserver status | jsonfilter -e '@.service.running' | grep -x true
 before="$(ubus call luci.torrserver status | jsonfilter -e '@.service.pid')"
