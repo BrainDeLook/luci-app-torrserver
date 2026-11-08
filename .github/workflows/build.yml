@@ -40,7 +40,7 @@ jobs:
         id: package-cache
         with:
           path: dist/
-          key: apk-150-sdk-f5813d3-${{ hashFiles('packages/**', 'luci/**', 'scripts/build-upstream.sh', 'scripts/prepare-feed.sh', 'scripts/collect-packages.sh') }}
+          key: apk-150-sdk-f5813d3-${{ hashFiles('packages/**', 'luci/**', 'scripts/build-upstream.sh', 'scripts/build-sdk.sh', 'scripts/prepare-feed.sh', 'scripts/collect-packages.sh') }}
       - name: Install build tools
         if: steps.package-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
@@ -93,17 +93,8 @@ jobs:
         run: bash scripts/prepare-feed.sh .build/torrserver
       - name: Build native APKv3 packages
         if: steps.package-cache.outputs.cache-hit != 'true'
-        uses: openwrt/gh-action-sdk@f5813d30eeef3534b58ac7e79c5d8842b6035434
-        env:
-          ARCH: aarch64_generic-25.12.5
-          FEEDNAME: torrserver
-          FEED_DIR: ${{ github.workspace }}/packages
-          ARTIFACTS_DIR: ${{ github.workspace }}/.build/sdk-output
-          PACKAGES: torrserver luci-app-torrserver
-          INDEX: '0'
-          NO_REFRESH_CHECK: '1'
-          NO_SHFMT_CHECK: '1'
-          BUILD_LOG: '1'
+        timeout-minutes: 25
+        run: bash scripts/build-sdk.sh
       - name: Collect and verify APKv3 artifacts
         if: steps.package-cache.outputs.cache-hit != 'true'
         run: bash scripts/collect-packages.sh .build/sdk-output

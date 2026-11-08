@@ -125,7 +125,7 @@ bash scripts/build-upstream.sh .build/upstream .build
 bash scripts/prepare-feed.sh .build/torrserver
 ```
 
-The prepared `packages/` directory is an OpenWrt feed. The authoritative APK build is `.github/workflows/build.yml`: it uses the official `openwrt/gh-action-sdk` action pinned to a commit and the `aarch64_generic-25.12.5` SDK image. It installs only the requested packages and their dependencies. Use that workflow to reproduce the released packages.
+The prepared `packages/` directory is an OpenWrt feed. The authoritative APK build is `.github/workflows/build.yml`. `scripts/build-sdk.sh` downloads the official 25.12.5 SDK archive with bounded retries/timeouts and verifies its pinned SHA256, then runs the pinned `openwrt/gh-action-sdk` entrypoint in the official `aarch64_generic-25.12.5` container. This avoids the container setup script's unbounded archive download. It installs only the requested packages and their dependencies. Use that workflow to reproduce the released packages.
 
 Firmware sysupgrade does not automatically back up the data directory. Back up that directory separately before replacing firmware.
 
