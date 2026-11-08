@@ -6,7 +6,8 @@ archive=openwrt-sdk-25.12.5-armsr-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst
 archive_sha256=1b0316604a3e820b2b008a1baff3f9dac6716af942bef800930e58c7de98c98b
 sdk_dir="$repo_dir/.build/sdk"
 mkdir -p "$sdk_dir" "$repo_dir/.build/sdk-output"
-curl --fail --location --show-error --retry 2 --connect-timeout 20 --max-time 600 \
+curl --http1.1 --fail --location --show-error --retry 3 --retry-all-errors \
+	--speed-time 30 --speed-limit 1024 --connect-timeout 20 --max-time 300 \
 	"https://downloads.openwrt.org/releases/25.12.5/targets/armsr/armv8/$archive" \
 	-o "$repo_dir/.build/$archive"
 printf '%s  %s\n' "$archive_sha256" "$repo_dir/.build/$archive" | sha256sum -c
